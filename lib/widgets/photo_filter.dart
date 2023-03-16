@@ -102,6 +102,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
 
   @override
   Widget build(BuildContext context) {
+    
     return Scaffold(
       backgroundColor: widget.appBarColor,
       appBar: AppBar(
