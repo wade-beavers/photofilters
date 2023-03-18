@@ -27,27 +27,27 @@ class _MyAppState extends State<MyApp> {
       fileName = basename(imageFile.path);
       var image = imageLib.decodeImage(await imageFile.readAsBytes());
       image = imageLib.copyResize(image, width: 600);
-      Map imagefile = await Navigator.push(
-        context,
-        new MaterialPageRoute(
-          builder: (context) => new PhotoFilterSelector(
-            title: Text("Photo Filter Example"),
-            subtitle: Text("Apply filters to your image!"),
-            image: image,
-            filters: presetFiltersList,
-            filename: fileName,
-            loader: Center(child: CircularProgressIndicator()),
-            fit: BoxFit.contain,
-          ),
-        ),
-      );
+      // Map imagefile = await Navigator.push(
+      //   context,
+      //   new MaterialPageRoute(
+      //     builder: (context) => new PhotoFilterSelector(
+      //       title: Text("Photo Filter Example"),
+      //       subtitle: Text("Apply filters to your image!"),
+      //       image: image,
+      //       filters: presetFiltersList,
+      //       filenames: fileName,
+      //       loader: Center(child: CircularProgressIndicator()),
+      //       fit: BoxFit.contain,
+      //     ),
+      //   ),
+      // );
 
-      if (imagefile != null && imagefile.containsKey('image_filtered')) {
-        setState(() {
-          imageFile = imagefile['image_filtered'];
-        });
-        print(imageFile.path);
-      }
+      // if (imagefile != null && imagefile.containsKey('image_filtered')) {
+      //   setState(() {
+      //     imageFile = imagefile['image_filtered'];
+      //   });
+      //   print(imageFile.path);
+      // }
     }
   }
 

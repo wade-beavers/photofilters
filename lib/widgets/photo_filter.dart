@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -51,15 +52,16 @@ class PhotoFilter extends StatelessWidget {
 }
 
 ///The PhotoFilterSelector Widget for apply filter from a selected set of filters
+
 class PhotoFilterSelector extends StatefulWidget {
   final Widget title;
   final Widget subtitle;
   final Color appBarColor;
   final List<Filter> filters;
-  final imageLib.Image image;
+  final List<imageLib.Image> images;
   final Widget loader;
   final BoxFit fit;
-  final String filename;
+  final List<String> filenames;
   final bool circleShape;
 
   const PhotoFilterSelector({
@@ -67,11 +69,11 @@ class PhotoFilterSelector extends StatefulWidget {
     required this.title,
     required this.subtitle,
     required this.filters,
-    required this.image,
+    required this.images,
     this.appBarColor = Colors.blue,
     this.loader = const Center(child: CircularProgressIndicator()),
     this.fit = BoxFit.fill,
-    required this.filename,
+    required this.filenames,
     this.circleShape = false,
   }) : super(key: key);
 
@@ -82,17 +84,27 @@ class PhotoFilterSelector extends StatefulWidget {
 class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
   String? filename;
   Map<String, List<int>?> cachedFilters = {};
-  Filter? _filter;
+  // Filter? _filter;
   imageLib.Image? image;
   late bool loading;
+  // int imageIndex = 0;
+  ValueNotifier<int> imageIndex = ValueNotifier<int>(0);
+  // ValueNotifier<Filter?> filterNotifier = ValueNotifier<Filter?>(null);
+  List<Filter> selectedFilters = [];
+  List<ValueNotifier<Filter?>> filterNotifiers = [];
 
   @override
   void initState() {
     super.initState();
     loading = false;
-    _filter = widget.filters[0];
-    filename = widget.filename;
-    image = widget.image;
+    // _filter = widget.filters[0];
+    // filterNotifier.value = _filter;
+    filename = widget.filenames[imageIndex.value];
+    image = widget.images[imageIndex.value];
+    for (int i = 0; i < widget.images.length; i++) {
+      selectedFilters.add(widget.filters[0]);
+      filterNotifiers.add(ValueNotifier<Filter?>(widget.filters[0]));
+    }
   }
 
   @override
@@ -102,7 +114,6 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
 
   @override
   Widget build(BuildContext context) {
-    
     return Scaffold(
       backgroundColor: widget.appBarColor,
       appBar: AppBar(
@@ -134,18 +145,30 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                 mainAxisSize: MainAxisSize.max,
                 children: [
                   widget.subtitle,
-                  Expanded(
-                    flex: 6,
-                    child: Container(
-                      width: double.infinity,
-                      height: double.infinity,
-                      padding: EdgeInsets.all(12.0),
-                      child: _buildFilteredImage(
-                        _filter,
-                        image,
-                        filename,
-                      ),
-                    ),
+                  ValueListenableBuilder<int>(
+                    valueListenable: imageIndex,
+                    builder: (BuildContext context, int index, Widget? child) {
+                      image = widget.images[index];
+                      filename = widget.filenames[index];
+
+                      log('IMAGE: $image, FILENAME: $filename');
+                      return Expanded(
+                        flex: 6,
+                        child: Container(
+                          width: double.infinity,
+                          height: double.infinity,
+                          padding: EdgeInsets.all(12.0),
+                          child: ValueListenableBuilder<Filter?>(
+                            valueListenable: filterNotifiers[imageIndex.value],
+                            builder: (BuildContext context, Filter? filter,
+                                Widget? child) {
+                              return _buildFilteredImage(
+                                  filter, image, filename, imageIndex);
+                            },
+                          ),
+                        ),
+                      );
+                    },
                   ),
                   Expanded(
                     flex: 2,
@@ -160,8 +183,8 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: <Widget>[
-                                  _buildFilterThumbnail(
-                                      widget.filters[index], image, filename),
+                                  _buildFilterThumbnail(widget.filters[index],
+                                      image, filename, imageIndex),
                                   SizedBox(
                                     height: 5.0,
                                   ),
@@ -172,12 +195,44 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                               ),
                             ),
                             onTap: () => setState(() {
-                              _filter = widget.filters[index];
+                              selectedFilters[imageIndex.value] =
+                                  widget.filters[index];
+                              filterNotifiers[imageIndex.value].value =
+                                  widget.filters[index];
                             }),
                           );
                         },
                       ),
                     ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        onPressed: () {
+                          if (imageIndex.value > 0) {
+                            setState(() {
+                              imageIndex.value--;
+                              filename = widget.filenames[imageIndex.value];
+                              image = widget.images[imageIndex.value];
+                            });
+                          }
+                        },
+                        child: Text('Previous'),
+                      ),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (imageIndex.value < widget.images.length - 1) {
+                            setState(() {
+                              imageIndex.value++;
+                              filename = widget.filenames[imageIndex.value];
+                              image = widget.images[imageIndex.value];
+                            });
+                          }
+                        },
+                        child: Text('Next'),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -185,9 +240,10 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
     );
   }
 
-  _buildFilterThumbnail(
-      Filter filter, imageLib.Image? image, String? filename) {
-    if (cachedFilters[filter.name] == null) {
+  _buildFilterThumbnail(Filter filter, imageLib.Image? image, String? filename,
+      ValueNotifier<int> imageIndex) {
+    String cacheKey = '${filter.name}_${imageIndex.value}';
+    if (cachedFilters[cacheKey] == null) {
       return FutureBuilder<List<int>>(
         future: compute(applyFilter, <String, dynamic>{
           "filter": filter,
@@ -213,7 +269,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
             case ConnectionState.done:
               if (snapshot.hasError)
                 return Center(child: Text('Error: ${snapshot.error}'));
-              cachedFilters[filter.name] = snapshot.data;
+              cachedFilters[cacheKey] = snapshot.data;
               return ClipRRect(
                 borderRadius: BorderRadius.circular(6.0),
                 child: Container(
@@ -238,7 +294,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
           height: 100.0,
           color: Colors.white,
           child: Image.memory(
-            cachedFilters[filter.name] as dynamic,
+            cachedFilters[cacheKey] as dynamic,
             fit: BoxFit.fill,
           ),
         ),
@@ -254,18 +310,35 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
 
   Future<File> get _localFile async {
     final path = await _localPath;
-    return File('$path/filtered_${_filter?.name ?? "_"}_$filename');
+    // Use the selected filter for the current image
+    Filter? currentFilter = selectedFilters[imageIndex.value];
+    return File('$path/filtered_${currentFilter.name}_$filename');
   }
 
   Future<File> saveFilteredImage() async {
     var imageFile = await _localFile;
-    await imageFile.writeAsBytes(cachedFilters[_filter?.name ?? "_"]!);
+    // Use the selected filter for the current image
+    Filter? currentFilter = selectedFilters[imageIndex.value];
+    await imageFile.writeAsBytes(cachedFilters[currentFilter.name]!);
     return imageFile;
   }
 
-  Widget _buildFilteredImage(
-      Filter? filter, imageLib.Image? image, String? filename) {
-    if (cachedFilters[filter?.name ?? "_"] == null) {
+  Widget _buildFilteredImage(Filter? filter, imageLib.Image? image,
+      String? filename, ValueNotifier<int> imageIndex) {
+    return ValueListenableBuilder<int>(
+      valueListenable: imageIndex,
+      builder: (context, index, child) {
+        return filter != null
+            ? _imageBuilder(
+                filter, widget.images[index], widget.filenames[index])
+            : Container(); // Show an empty container when filter is null.
+      },
+    );
+  }
+
+  Widget _imageBuilder(Filter filter, imageLib.Image? image, String? filename) {
+    String cacheKey = '${filter.name}_${imageIndex.value}';
+    if (cachedFilters[cacheKey] == null) {
       return FutureBuilder<List<int>>(
         future: compute(applyFilter, <String, dynamic>{
           "filter": filter,
@@ -282,7 +355,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
             case ConnectionState.done:
               if (snapshot.hasError)
                 return Center(child: Text('Error: ${snapshot.error}'));
-              cachedFilters[filter?.name ?? "_"] = snapshot.data;
+              cachedFilters[cacheKey] = snapshot.data;
               return widget.circleShape
                   ? SizedBox(
                       height: MediaQuery.of(context).size.width / 3,
@@ -313,13 +386,13 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                 child: CircleAvatar(
                   radius: MediaQuery.of(context).size.width / 3,
                   backgroundImage: MemoryImage(
-                    cachedFilters[filter?.name ?? "_"] as dynamic,
+                    cachedFilters[cacheKey] as dynamic,
                   ),
                 ),
               ),
             )
           : Image.memory(
-              cachedFilters[filter?.name ?? "_"] as dynamic,
+              cachedFilters[cacheKey] as dynamic,
               fit: widget.fit,
             );
     }
