@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:image/image.dart' as imageLib;
+import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photofilters/filters/filters.dart';
 
@@ -51,8 +52,6 @@ class PhotoFilter extends StatelessWidget {
   }
 }
 
-///The PhotoFilterSelector Widget for apply filter from a selected set of filters
-
 class PhotoFilterSelector extends StatefulWidget {
   final Widget title;
   final Widget subtitle;
@@ -84,12 +83,9 @@ class PhotoFilterSelector extends StatefulWidget {
 class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
   String? filename;
   Map<String, List<int>?> cachedFilters = {};
-  // Filter? _filter;
   imageLib.Image? image;
   late bool loading;
-  // int imageIndex = 0;
   ValueNotifier<int> imageIndex = ValueNotifier<int>(0);
-  // ValueNotifier<Filter?> filterNotifier = ValueNotifier<Filter?>(null);
   List<Filter> selectedFilters = [];
   List<ValueNotifier<Filter?>> filterNotifiers = [];
 
@@ -97,8 +93,6 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
   void initState() {
     super.initState();
     loading = false;
-    // _filter = widget.filters[0];
-    // filterNotifier.value = _filter;
     filename = widget.filenames[imageIndex.value];
     image = widget.images[imageIndex.value];
     for (int i = 0; i < widget.images.length; i++) {
@@ -129,9 +123,8 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                     setState(() {
                       loading = true;
                     });
-                    var imageFile = await saveFilteredImage();
-
-                    Navigator.pop(context, {'image_filtered': imageFile});
+                    await saveAllFilteredImage();
+                    Navigator.pop(context);
                   },
                 )
         ],
@@ -170,6 +163,56 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                       );
                     },
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 32.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Visibility(
+                          visible: imageIndex.value > 0,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (imageIndex.value > 0) {
+                                setState(() {
+                                  imageIndex.value--;
+                                  filename = widget.filenames[imageIndex.value];
+                                  image = widget.images[imageIndex.value];
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: CircleBorder(),
+                              padding: EdgeInsets.all(20),
+                              backgroundColor: Color(0xFF4A4A4A),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Icon(Icons.arrow_back_ios_rounded),
+                          ),
+                        ),
+                        Visibility(
+                          visible: imageIndex.value < widget.images.length - 1,
+                          child: ElevatedButton(
+                            onPressed: () {
+                              if (imageIndex.value < widget.images.length - 1) {
+                                setState(() {
+                                  imageIndex.value++;
+                                  filename = widget.filenames[imageIndex.value];
+                                  image = widget.images[imageIndex.value];
+                                });
+                              }
+                            },
+                            style: ElevatedButton.styleFrom(
+                              shape: CircleBorder(),
+                              padding: EdgeInsets.all(20),
+                              backgroundColor: Color(0xFF4A4A4A),
+                              foregroundColor: Colors.white,
+                            ),
+                            child: Icon(Icons.arrow_forward_ios_rounded),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Expanded(
                     flex: 2,
                     child: Container(
@@ -204,35 +247,6 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                         },
                       ),
                     ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () {
-                          if (imageIndex.value > 0) {
-                            setState(() {
-                              imageIndex.value--;
-                              filename = widget.filenames[imageIndex.value];
-                              image = widget.images[imageIndex.value];
-                            });
-                          }
-                        },
-                        child: Text('Previous'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () {
-                          if (imageIndex.value < widget.images.length - 1) {
-                            setState(() {
-                              imageIndex.value++;
-                              filename = widget.filenames[imageIndex.value];
-                              image = widget.images[imageIndex.value];
-                            });
-                          }
-                        },
-                        child: Text('Next'),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -310,14 +324,29 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
 
   Future<File> get _localFile async {
     final path = await _localPath;
-    // Use the selected filter for the current image
     Filter? currentFilter = selectedFilters[imageIndex.value];
     return File('$path/filtered_${currentFilter.name}_$filename');
   }
 
+  Future<void> saveAllFilteredImage() async {
+    for (int i = 0; i < widget.images.length; i++) {
+      imageIndex.value = i;
+      Filter? currentFilter = selectedFilters[i];
+      String cacheKey = '${currentFilter.name}_${imageIndex.value}';
+      List<int>? imageData = cachedFilters[cacheKey];
+
+      if (imageData != null) {
+        final result = await ImageGallerySaver.saveImage(
+            Uint8List.fromList(imageData),
+            quality: 90,
+            name: 'filtered_${currentFilter.name}_${widget.filenames[i]}');
+        print('File saved: $result');
+      }
+    }
+  }
+
   Future<File> saveFilteredImage() async {
     var imageFile = await _localFile;
-    // Use the selected filter for the current image
     Filter? currentFilter = selectedFilters[imageIndex.value];
     await imageFile.writeAsBytes(cachedFilters[currentFilter.name]!);
     return imageFile;
@@ -331,7 +360,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
         return filter != null
             ? _imageBuilder(
                 filter, widget.images[index], widget.filenames[index])
-            : Container(); // Show an empty container when filter is null.
+            : Container();
       },
     );
   }

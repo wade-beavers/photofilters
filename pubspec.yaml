@@ -10,6 +10,7 @@ dependencies:
   flutter:
     sdk: flutter
   image: ^3.3.0
+  image_gallery_saver: ^1.7.1
   meta: ^1.3.0
   path_provider: ^2.0.1
 
