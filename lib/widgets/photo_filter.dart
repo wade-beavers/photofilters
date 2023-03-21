@@ -111,6 +111,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
     return Scaffold(
       backgroundColor: widget.appBarColor,
       appBar: AppBar(
+        centerTitle: true,
         title: widget.title,
         backgroundColor: widget.appBarColor,
         elevation: 0,
