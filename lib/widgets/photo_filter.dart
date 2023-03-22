@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:developer';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -8,6 +7,7 @@ import 'package:image/image.dart' as imageLib;
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:photofilters/filters/filters.dart';
+import 'package:shimmer/shimmer.dart';
 
 class PhotoFilter extends StatelessWidget {
   final imageLib.Image image;
@@ -144,8 +144,6 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
                     builder: (BuildContext context, int index, Widget? child) {
                       image = widget.images[index];
                       filename = widget.filenames[index];
-
-                      log('IMAGE: $image, FILENAME: $filename');
                       return Expanded(
                         flex: 6,
                         child: Container(
@@ -272,12 +270,18 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
             case ConnectionState.waiting:
               return ClipRRect(
                 borderRadius: BorderRadius.circular(6.0),
-                child: Container(
+                child: SizedBox(
                   width: 150.0,
                   height: 100.0,
-                  color: Colors.white,
-                  child: Center(
-                    child: widget.loader,
+                  child: Shimmer(
+                    child: Container(
+                      width: 150.0,
+                      height: 100.0,
+                      color: Colors.white,
+                    ),
+                    gradient: LinearGradient(
+                      colors: [Colors.grey, Colors.white, Colors.grey],
+                    ),
                   ),
                 ),
               );
@@ -378,10 +382,27 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
         builder: (BuildContext context, AsyncSnapshot<List<int>> snapshot) {
           switch (snapshot.connectionState) {
             case ConnectionState.none:
-              return widget.loader;
             case ConnectionState.active:
             case ConnectionState.waiting:
-              return widget.loader;
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    height: 300,
+                    child: Shimmer(
+                      child: Container(
+                        width: double.infinity,
+                        height: 300.0,
+                        color: Colors.white,
+                      ),
+                      gradient: LinearGradient(
+                        colors: [Colors.grey, Colors.white, Colors.grey],
+                      ),
+                    ),
+                  ),
+                ],
+              );
             case ConnectionState.done:
               if (snapshot.hasError)
                 return Center(child: Text('Error: ${snapshot.error}'));
