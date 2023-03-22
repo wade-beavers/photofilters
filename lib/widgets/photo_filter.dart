@@ -271,12 +271,12 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(6.0),
                 child: SizedBox(
-                  width: 150.0,
-                  height: 100.0,
+                  width: 125.0,
+                  height: 125.0,
                   child: Shimmer(
                     child: Container(
-                      width: 150.0,
-                      height: 100.0,
+                      width: 125.0,
+                      height: 125.0,
                       color: Colors.white,
                     ),
                     gradient: LinearGradient(
@@ -292,12 +292,12 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
               return ClipRRect(
                 borderRadius: BorderRadius.circular(6.0),
                 child: Container(
-                  width: 150.0,
-                  height: 100.0,
+                  width: 125.0,
+                  height: 125.0,
                   color: Colors.white,
                   child: Image.memory(
                     snapshot.data as dynamic,
-                    fit: BoxFit.fill,
+                    fit: BoxFit.cover,
                   ),
                 ),
               );
