@@ -20,7 +20,7 @@ class PhotoFilter extends StatelessWidget {
     required this.image,
     required this.filename,
     required this.filter,
-    this.fit = BoxFit.fill,
+    this.fit = BoxFit.cover,
     this.loader = const Center(child: CircularProgressIndicator()),
   });
 
@@ -71,7 +71,7 @@ class PhotoFilterSelector extends StatefulWidget {
     required this.images,
     this.appBarColor = Colors.blue,
     this.loader = const Center(child: CircularProgressIndicator()),
-    this.fit = BoxFit.fill,
+    this.fit = BoxFit.cover,
     required this.filenames,
     this.circleShape = false,
   }) : super(key: key);
