@@ -238,3 +238,4 @@ fabric.properties
 
 !/res/
 !/doc/api/
+.vscode/settings.json

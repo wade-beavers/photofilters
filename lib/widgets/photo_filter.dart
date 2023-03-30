@@ -342,7 +342,7 @@ class _PhotoFilterSelectorState extends State<PhotoFilterSelector> {
       if (imageData != null) {
         final result = await ImageGallerySaver.saveImage(
             Uint8List.fromList(imageData),
-            quality: 90,
+            quality: 100,
             name: 'filtered_${currentFilter.name}_${widget.filenames[i]}');
         print('File saved: $result');
       }
